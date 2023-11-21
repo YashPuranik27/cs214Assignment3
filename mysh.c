@@ -71,12 +71,25 @@ void execute_command(char *cmd) {
 
     // Handle the 'cd' command separately
     if (strcmp(args[0], "cd") == 0) {
-        if (argc == 1) {
-            fprintf(stderr, "cd: No directory specified\n");
-        } else {
-            if (chdir(args[1]) != 0) {
-                perror("cd");
+        char *path = argc > 1 ? args[1] : getenv("HOME"); // If no directory specified, use HOME
+
+        // Implement 'cd -' to go back to the previous directory
+        static char *previous_dir = NULL;
+        if (args[1] && strcmp(args[1], "-") == 0) {
+            if (previous_dir) {
+                path = previous_dir;
+            } else {
+                fprintf(stderr, "cd: OLDPWD not set\n");
+                return;
             }
+        } else {
+            // Save the current directory as previous before changing it
+            free(previous_dir);
+            previous_dir = getcwd(NULL, 0);
+        }
+
+        if (chdir(path) != 0) {
+            perror("cd");
         }
         return; // Return early since we've handled 'cd' command
     }
@@ -87,9 +100,10 @@ void execute_command(char *cmd) {
         perror("fork");
     } else if (pid == 0) {
         // Child process
+        // Suppress error messages from execvp
+        fclose(stderr);
         execvp(args[0], args);
         // exec only returns if there is an error
-        fprintf(stderr, "%s: command not recognized\n", args[0]);
         exit(EXIT_FAILURE);
     } else {
         // Parent process
