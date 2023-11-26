@@ -118,6 +118,9 @@ void execute_command(char *cmd){
         exit(EXIT_SUCCESS);
     }
 
+    // Expand wildcards
+    expand_wildcards(args, &argc);
+    
     // Check for built-in commands
     if (strcmp(args[0], "cd") == 0){
         char *path = argc > 1 ? args[1] : getenv("HOME"); // If no directory specified, use HOME
@@ -182,9 +185,6 @@ void execute_command(char *cmd){
 
         // Handle redirection
         handle_redirection(args, &argc, &input_fd, &output_fd);
-
-        // Expand wildcards
-        expand_wildcards(args, &argc);
 
         // For all other commands, use fork and exec
         pid_t pid = fork();
