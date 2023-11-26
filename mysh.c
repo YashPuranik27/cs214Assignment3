@@ -78,18 +78,27 @@ void handle_redirection(char **args, int *argc, int *input_fd, int *output_fd){
 
 void expand_wildcards(char **args, int *argc){
     glob_t glob_result;
-    int i;
 
-    for (i = 0; args[i] != NULL; ++i){
+    for (int i = 0; args[i] != NULL; ++i){
         if (strchr(args[i], '*') != NULL){
             // Perform wildcard expansion
             if (glob(args[i], 0, NULL, &glob_result) == 0){
+                // Move existing arguments to make room for expanded names
+                int num_expanded = glob_result.gl_pathc;
+                
+                // Shift existing arguments to the right
+                for (int k = *argc - 1; k > i && args[i+1] != NULL; --k){
+                    args[k + num_expanded] = args[k];
+                }
+
+                int insert_index=i;
                 // Replace wildcard token with expanded names
                 for (size_t j = 0; j < glob_result.gl_pathc; ++j){
-                    args[*argc++] = strdup(glob_result.gl_pathv[j]);
+                    args[insert_index++] = strdup(glob_result.gl_pathv[j]);
                 }
+                argc+=num_expanded-1;
+                
                 globfree(&glob_result);
-                args[i] = NULL; // Remove the original wildcard token
             }
         }
     }
