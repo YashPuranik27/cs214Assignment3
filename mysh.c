@@ -84,7 +84,7 @@ void expand_wildcards(char **args, int *argc){
             // Perform wildcard expansion
             if (glob(args[i], 0, NULL, &glob_result) == 0){
                 // Move existing arguments to make room for expanded names
-                int num_expanded = glob_result.gl_pathc;
+                int num_expanded = glob_result.gl_pathc-1;
                 
                 // Shift existing arguments to the right
                 for (int k = *argc - 1; k > i && args[i+1] != NULL; --k){
@@ -96,7 +96,7 @@ void expand_wildcards(char **args, int *argc){
                 for (size_t j = 0; j < glob_result.gl_pathc; ++j){
                     args[insert_index++] = strdup(glob_result.gl_pathv[j]);
                 }
-                argc+=num_expanded-1;
+                argc+=num_expanded;
                 
                 globfree(&glob_result);
             }
