@@ -49,23 +49,42 @@ void run_interactive_mode(){
     free(line);
 }
 
-void handle_redirection(char **args, int *argc, int *input_fd, int *output_fd){
+void handle_redirection(char **args, int *argc, int *input_fd, int *output_fd)
+{
     int i;
-    for (i = 0; args[i] != NULL; ++i){
-        if (strcmp(args[i], "<") == 0){
+    for (i = 0; args[i] != NULL; ++i)
+    {
+        if (strcmp(args[i], "<") == 0)
+        {
             *input_fd = open(args[i + 1], O_RDONLY);
-            if (*input_fd == -1){
+            if (*input_fd == -1)
+            {
                 perror("open");
+                exit(EXIT_FAILURE);
+            }
+            // Use dup2 to replace standard input with the file descriptor
+            if (dup2(*input_fd, STDIN_FILENO) == -1)
+            {
+                perror("dup2");
                 exit(EXIT_FAILURE);
             }
             args[i] = NULL;     // Remove "<" from args
             args[i + 1] = NULL; // Remove the filename from args
             *argc = i;          // Update argc
             break;
-        }else if (strcmp(args[i], ">") == 0){
+        }
+        else if (strcmp(args[i], ">") == 0)
+        {
             *output_fd = open(args[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0640);
-            if (*output_fd == -1){
+            if (*output_fd == -1)
+            {
                 perror("open");
+                exit(EXIT_FAILURE);
+            }
+            // Use dup2 to replace standard output with the file descriptor
+            if (dup2(*output_fd, STDOUT_FILENO) == -1)
+            {
+                perror("dup2");
                 exit(EXIT_FAILURE);
             }
             args[i] = NULL;     // Remove ">" from args
@@ -192,6 +211,10 @@ void execute_command(char *cmd){
         int input_fd = STDIN_FILENO;
         int output_fd = STDOUT_FILENO;
 
+        // Save original file descriptors
+        int original_input_fd = dup(STDIN_FILENO);
+        int original_output_fd = dup(STDOUT_FILENO);
+
         // Handle redirection
         handle_redirection(args, &argc, &input_fd, &output_fd);
 
@@ -204,6 +227,12 @@ void execute_command(char *cmd){
             // Suppress error messages from execvp
             fclose(stderr);
             execvp(args[0], args);
+
+            dup2(original_input_fd, STDIN_FILENO);
+            dup2(original_output_fd, STDOUT_FILENO);
+
+            close(original_input_fd);
+            close(original_output_fd);
             // exec only returns if there is an error
             exit(EXIT_FAILURE);
         }else{
@@ -231,6 +260,11 @@ void execute_command(char *cmd){
                     }
                 }
             }
+            dup2(original_input_fd, STDIN_FILENO);
+            dup2(original_output_fd, STDOUT_FILENO);
+
+            close(original_input_fd);
+            close(original_output_fd);
         }
     }
 }
