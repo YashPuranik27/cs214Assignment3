@@ -115,7 +115,7 @@ void expand_wildcards(char **args, int *argc){
                 for (size_t j = 0; j < glob_result.gl_pathc; ++j){
                     args[insert_index++] = strdup(glob_result.gl_pathv[j]);
                 }
-                argc+=num_expanded;
+                *argc+=num_expanded;
                 
                 globfree(&glob_result);
             }
