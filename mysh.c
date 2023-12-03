@@ -75,7 +75,7 @@ void handle_redirection(char **args, int *argc, int *input_fd, int *output_fd)
         }
         else if (strcmp(args[i], ">") == 0)
         {
-            *output_fd = open(args[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0640);
+            *output_fd = open(args[i + 1], O_RDWR | O_CREAT | O_TRUNC, 0640);
             if (*output_fd == -1)
             {
                 perror("open");
