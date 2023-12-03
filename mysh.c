@@ -148,6 +148,17 @@ void execute_command(char *cmd){
 
     // Expand wildcards
     expand_wildcards(args, &argc);
+
+    // Handle external commands
+    int input_fd = STDIN_FILENO;
+    int output_fd = STDOUT_FILENO;
+
+    // Save original file descriptors
+    int original_input_fd = dup(STDIN_FILENO);
+    int original_output_fd = dup(STDOUT_FILENO);
+
+    // Handle redirection
+    handle_redirection(args, &argc, &input_fd, &output_fd);
     
     // Check for built-in commands
     if (strcmp(args[0], "cd") == 0){
@@ -161,6 +172,11 @@ void execute_command(char *cmd){
                 path = previous_dir;
             }else{
                 fprintf(stderr, "cd: OLDPWD not set\n");
+                dup2(original_input_fd, STDIN_FILENO);
+                dup2(original_output_fd, STDOUT_FILENO);
+
+                close(original_input_fd);
+                close(original_output_fd);
                 return;
             }
         }else{
@@ -168,55 +184,71 @@ void execute_command(char *cmd){
             free(previous_dir);
             previous_dir = getcwd(NULL, 0);
         }
-
         if (chdir(path) != 0){
             perror("cd");
         }
+        dup2(original_input_fd, STDIN_FILENO);
+        dup2(original_output_fd, STDOUT_FILENO);
+
+        close(original_input_fd);
+        close(original_output_fd);
         return; // Return early since we've handled 'cd' command
     }else if (strcmp(args[0], "pwd") == 0){
-            char cwd[1024];
-            if (getcwd(cwd, sizeof(cwd)) != NULL){
-                printf("%s\n", cwd);
-            }else{
-                perror("getcwd");
-            }
-            return; // Return early since 'pwd' doesn't involve creating a subprocess
+        char cwd[1024];
+        if (getcwd(cwd, sizeof(cwd)) != NULL){
+            printf("%s\n", cwd);
+        }else{
+            perror("getcwd");
+        }
+        dup2(original_input_fd, STDIN_FILENO);
+        dup2(original_output_fd, STDOUT_FILENO);
+
+        close(original_input_fd);
+        close(original_output_fd);
+        return; // Return early since 'pwd' doesn't involve creating a subprocess
     }else if (strcmp(args[0], "which") == 0){
         if (argc != 2)
         {
             fprintf(stderr, "which: incorrect number of arguments\n");
+            dup2(original_input_fd, STDIN_FILENO);
+            dup2(original_output_fd, STDOUT_FILENO);
+
+            close(original_input_fd);
+            close(original_output_fd);
             return;
         }
-
         // Check if the command includes a path
         if (strchr(args[1], '/') != NULL){
             // Command includes a path, directly check that path
             if (access(args[1], X_OK) == 0){
                 printf("./%s\n", args[1]);
+                dup2(original_input_fd, STDIN_FILENO);
+                dup2(original_output_fd, STDOUT_FILENO);
+
+                close(original_input_fd);
+                close(original_output_fd);
                 return; // Return early since 'which' doesn't involve creating a subprocess
             }
         }else{
             // Search for the program in the current directory
             if (access(args[1], X_OK) == 0){
                 printf("./%s\n", args[1]);
+                dup2(original_input_fd, STDIN_FILENO);
+                dup2(original_output_fd, STDOUT_FILENO);
+
+                close(original_input_fd);
+                close(original_output_fd);
                 return; // Return early since 'which' doesn't involve creating a subprocess
             }
         }
+        dup2(original_input_fd, STDIN_FILENO);
+        dup2(original_output_fd, STDOUT_FILENO);
 
+        close(original_input_fd);
+        close(original_output_fd);
         fprintf(stderr, "which: %s: not found\n", args[1]);
         return;
     }else{
-        // Handle external commands
-        int input_fd = STDIN_FILENO;
-        int output_fd = STDOUT_FILENO;
-
-        // Save original file descriptors
-        int original_input_fd = dup(STDIN_FILENO);
-        int original_output_fd = dup(STDOUT_FILENO);
-
-        // Handle redirection
-        handle_redirection(args, &argc, &input_fd, &output_fd);
-
         // For all other commands, use fork and exec
         pid_t pid = fork();
         if (pid == -1){
