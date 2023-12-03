@@ -222,16 +222,32 @@ void execute_command(char *cmd){
         if (pid == -1){
             perror("fork");
         }else if (pid == 0){
-            // Child process
-            // Suppress error messages from execvp
             fclose(stderr);
-            execvp(args[0], args);
+
+            // If args[0] contains a slash, assume it's a full path, use execv directly
+            if (strchr(args[0], '/') != NULL){
+                execv(args[0], args);
+            }else{
+                // Otherwise, construct the full path using paths from PATH environment variable
+                char *paths[] = {"/usr/local/bin", "/usr/bin", "/bin", NULL};
+                int i;
+                for (i = 0; paths[i] != NULL; ++i){
+                    char path[1024];
+                    snprintf(path, sizeof(path), "%s/%s", paths[i], args[0]);
+
+                    if (access(path, X_OK) == 0){
+                        execv(path, args);
+                    }
+                }
+            }
 
             dup2(original_input_fd, STDIN_FILENO);
             dup2(original_output_fd, STDOUT_FILENO);
 
             close(original_input_fd);
             close(original_output_fd);
+
+            perror("execv");
             // exec only returns if there is an error
             exit(EXIT_FAILURE);
         }else{
