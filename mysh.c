@@ -174,7 +174,6 @@ void execute_command(char *cmd){
         }
         return; // Return early since we've handled 'cd' command
     }else if (strcmp(args[0], "pwd") == 0){
-        if (strcmp(args[0], "pwd") == 0){
             char cwd[1024];
             if (getcwd(cwd, sizeof(cwd)) != NULL){
                 printf("%s\n", cwd);
@@ -182,30 +181,30 @@ void execute_command(char *cmd){
                 perror("getcwd");
             }
             return; // Return early since 'pwd' doesn't involve creating a subprocess
-        }
     }else if (strcmp(args[0], "which") == 0){
-        if (strcmp(args[0], "which") == 0){
-            if (argc != 2){
-                fprintf(stderr, "which: incorrect number of arguments\n");
-                return;
-            }
-
-            // Search for the program in /usr/local/bin, /usr/bin, and /bin
-            char *paths[] = {"/usr/local/bin", "/usr/bin", "/bin", NULL};
-            int i;
-            for (i = 0; paths[i] != NULL; ++i){
-                char path[1024];
-                snprintf(path, sizeof(path), "%s/%s", paths[i], args[1]);
-
-                if (access(path, X_OK) == 0){
-                    printf("%s\n", path);
-                    return; // Return early since 'which' doesn't involve creating a subprocess
-                }
-            }
-
-            fprintf(stderr, "which: %s: not found\n", args[1]);
+        if (argc != 2)
+        {
+            fprintf(stderr, "which: incorrect number of arguments\n");
             return;
         }
+
+        // Check if the command includes a path
+        if (strchr(args[1], '/') != NULL){
+            // Command includes a path, directly check that path
+            if (access(args[1], X_OK) == 0){
+                printf("./%s\n", args[1]);
+                return; // Return early since 'which' doesn't involve creating a subprocess
+            }
+        }else{
+            // Search for the program in the current directory
+            if (access(args[1], X_OK) == 0){
+                printf("./%s\n", args[1]);
+                return; // Return early since 'which' doesn't involve creating a subprocess
+            }
+        }
+
+        fprintf(stderr, "which: %s: not found\n", args[1]);
+        return;
     }else{
         // Handle external commands
         int input_fd = STDIN_FILENO;
