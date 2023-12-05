@@ -27,6 +27,7 @@ void run_batch_mode(const char *filename){
     }
     free(line);
     fclose(file);
+    exit(EXIT_SUCCESS);
 }
 
 void run_interactive_mode(){
@@ -197,6 +198,7 @@ void execute_command(char *cmd){
                 if (WIFEXITED(status2)){
                     int exit_status = WEXITSTATUS(status2);
                     printf("Command exited with status %d\n", exit_status);
+                    return;
                 }
             }
         }
