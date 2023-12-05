@@ -130,6 +130,16 @@ void execute_command(char *cmd){
         cmd[len - 1] = '\0';
     }
 
+    int has_input=0;
+    for (int i = 0; i < len-1; ++i){
+        if(cmd[i] != ' '){
+            has_input = 1;
+        }
+    }
+    if(has_input == 0){
+        return;
+    }
+
     char *pipe_token = strchr(cmd, '|');
     if (pipe_token != NULL){
         // Handle pipes
